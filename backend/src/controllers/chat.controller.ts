@@ -1,6 +1,5 @@
 import { Request, Response } from "express";
-import { prisma } from "../lib/prisma";
-import { generateReply } from "../services/llm.service";
+import { processIncomingMessage, getConversationHistory } from "../services/chat.service";
 
 export const handleMessage = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -21,45 +20,8 @@ export const handleMessage = async (req: Request, res: Response): Promise<void> 
       return;
     }
 
-    // Fetch conversation or create one
-    let conversation = await prisma.conversation.findUnique({
-      where: { sessionId },
-      include: { messages: { orderBy: { timestamp: 'asc' } } }
-    });
-
-    if (!conversation) {
-      conversation = await prisma.conversation.create({
-        data: { sessionId },
-        include: { messages: true }
-      });
-    }
-
-    // Extract history for the LLM context
-    const history = conversation.messages.map(msg => ({
-      sender: msg.sender,
-      text: msg.text,
-    }));
-
-    // Save user message to DB
-    const userMessage = await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        sender: "user",
-        text: message,
-      }
-    });
-
-    // Generate reply using LLM
-    const replyText = await generateReply(history, message);
-
-    // Save AI reply to DB
-    const aiMessage = await prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        sender: "ai",
-        text: replyText,
-      }
-    });
+    // Hand off to the business logic layer
+    const replyText = await processIncomingMessage(sessionId, message);
 
     res.json({ reply: replyText, sessionId });
   } catch (error) {
@@ -77,21 +39,10 @@ export const getHistory = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const conversation = await prisma.conversation.findUnique({
-      where: { sessionId },
-      include: {
-        messages: {
-          orderBy: { timestamp: 'asc' }
-        }
-      }
-    });
+    // Hand off to the business logic layer
+    const messages = await getConversationHistory(sessionId);
 
-    if (!conversation) {
-      res.json([]);
-      return;
-    }
-
-    res.json(conversation.messages);
+    res.json(messages);
   } catch (error) {
     console.error("Error in getHistory:", error);
     res.status(500).json({ error: "Internal server error" });
