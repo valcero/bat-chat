@@ -7,10 +7,12 @@ function getSessionId() {
   return sessionId;
 }
 
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:3001";
+
 export async function sendMessageToAPI(message: string): Promise<string> {
   const sessionId = getSessionId();
   
-  const response = await fetch("http://localhost:3001/chat/message", {
+  const response = await fetch(`${API_BASE}/chat/message`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -28,7 +30,7 @@ export async function sendMessageToAPI(message: string): Promise<string> {
 
 export async function fetchChatHistory() {
   const sessionId = getSessionId();
-  const response = await fetch(`http://localhost:3001/chat/history/${sessionId}`);
+  const response = await fetch(`${API_BASE}/chat/history/${sessionId}`);
   
   if (!response.ok) {
     return [];
