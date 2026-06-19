@@ -23,7 +23,6 @@ services:
   - type: web
     name: bat-chat-frontend
     env: static
-    plan: free
     buildCommand: npm install && npm run build
     staticPublishPath: dist
     envVars:
