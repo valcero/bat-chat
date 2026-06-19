@@ -1,0 +1,34 @@
+databases:
+  - name: bat-chat-db
+    databaseName: batchat
+    user: admin
+    plan: free
+
+services:
+  - type: web
+    name: bat-chat-backend
+    env: node
+    plan: free
+    rootDir: backend
+    buildCommand: npm install && npx prisma generate && npm run build && npx prisma db push
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: bat-chat-db
+          property: connectionString
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: web
+    name: bat-chat-frontend
+    env: static
+    plan: free
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: bat-chat-backend
+          envVarKey: RENDER_EXTERNAL_URL
